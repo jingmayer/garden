@@ -1,0 +1,104 @@
+require 'rubygems'
+require 'json'
+require 'canvas-api'
+require 'csv'
+
+
+canvas = Canvas::API.new(:host => "https://your.canvas.domain", :token => "insert your token")
+
+courses = canvas.get("/api/v1/courses?include[]=total_students&per_page=50")
+while courses.more?
+courses.next_page!
+end
+
+output_columns=%w(course_sis_id course_id course_code course_name total_students  discussion_topics_count file_count assignment_count module_count page_count quiz_count)
+
+CSV.open("CourseContent.csv", "w") do |csv|
+    csv<<output_columns
+    courses.each do |course|
+      module_count = nil
+      page_count=nil
+      discussion_topics_count=nil
+      file_count=nil
+      assignment_count=nil
+      quiz_count=nil
+        
+        if course
+            begin
+              discussion=[]
+              discussion = canvas.get("/api/v1/courses/#{course["id"]}/discussion_topics?per_page=50")
+              while discussion.more?
+                discussion.next_page!
+              end
+            
+                discussion_topics_count=discussion.count
+            end
+            
+                    unless file_count
+                        files=[]
+                        files=canvas.get("/api/v1/courses/#{course["id"]}/files?per_page=50")
+                        while files.more?
+                            files.next_page!
+                        end
+                        
+                        file_count=files.count
+                    end
+                    
+                    unless assignment_count
+                        assignments=[]
+                        assignments=canvas.get("/api/v1/courses/#{course["id"]}/assignments?per_page=50")
+                        while assignments.more?
+                            assignments.next_page!
+                        end
+                        
+                        assignment_count=assignments.count
+                    end
+            
+            unless module_count
+                modules=[]
+                modules=canvas.get("/api/v1/courses/#{course["id"]}/modules?per_page=50")
+                while modules.more?
+                    modules.next_page!
+                end
+                
+                module_count=modules.count
+            end
+            
+            unless page_count
+                pages=[]
+                pages=canvas.get("/api/v1/courses/#{course["id"]}/pages?per_page=50")
+                while pages.more?
+                    pages.next_page!
+                end
+                
+                page_count=pages.count
+            end
+
+            unless quiz_count
+                quizzes=[]
+                quizzes=canvas.get("/api/v1/courses/#{course["id"]}/quizzes?per_page=50")
+                while quizzes.more?
+                    quizzes.next_page!
+                end
+                
+                quiz_count=quizzes.count
+            end
+
+
+            course["course_id"]=course["id"]
+            course["course_sis_id"]=course["sis_course_id"]
+            course["course_name"]=course["name"]
+            course["total_students"]=course["total_students"]
+            course["course_code"]=course["course_code"]
+            course["module_count"]=module_count
+            course["page_count"]=page_count
+            course["assignment_count"]=assignment_count
+            course["file_count"]=file_count
+            course["discussion_topics_count"]=discussion_topics_count
+            course["quiz_count"]=quiz_count
+                                
+            csv << course.values_at(*output_columns)
+            end
+        end
+end
+    
