@@ -1,0 +1,112 @@
+require 'rubygems'
+require 'json'
+require 'canvas-api'
+require 'csv'
+
+course_ids=[]
+
+course_file=[]
+
+canvas = Canvas::API.new(:host => "https://your.canvas.domain", :token => "insert your token")
+
+courses = canvas.get("/api/v1/courses?per_page=50")
+while courses.more?
+    courses.next_page!
+end
+
+output_columns=%w(reply_author_name entry_author_name message course_id discussion_topics_count discussion_id discussion_entry_count entry_id entry_author_id reply_author_id recent_replies discussion_type html_url posted_at last_reply_at require_initial_post user_can_see_posts discussion_subentry_count assignment published pinned topic_creator)
+
+CSV.open("EntryReplies.csv", "w") do |csv|
+    csv<<output_columns
+    courses.each do |course|
+      
+      discussion_entry_count=nil
+      discussion_topics_count=nil
+   
+        
+        if course
+        discussions=[]
+        begin
+            discussions = canvas.get("/api/v1/courses/#{course["id"]}/discussion_topics?per_page=50")
+            while discussions.more?
+                  discussions.next_page!
+            end
+          
+            
+        if discussions
+            discussions.each do |ct|
+                if ct["id"] && ct["id"] > 0
+                entry=[]
+                begin
+                    entry=canvas.get("/api/v1/courses/#{course["id"]}/discussion_topics/#{ct["id"]}/entries?per_page=50")
+                    while entry.more?
+                        entry.next_page!
+                    end 
+                discussion_entry_count=entry.count
+            rescue Exception
+        end
+        
+        if entry
+            entry.each do |et|
+                if et["id"] && et["id"] > 0
+                reply=[]
+                begin
+                    reply=canvas.get("/api/v1/courses/#{course["id"]}/discussion_topics/#{ct["id"]}/entries/#{et["id"]}/replies?per_page=50")
+                    while reply.more?
+                        reply.next_page!
+                    end
+                    rescue Exception
+                end
+
+               if reply
+                   reply.each do |r|
+                       if r["id"]&&r["id"]>0
+                    r["reply_author_name"]=r["user_name"]
+                    r["reply_author_id"]=r["user_id"]
+                    r["course_id"] = course["id"]
+                    r["course_sis_id"] = course["sis_course_id"]
+                    r["discussion_id"]=ct["id"]
+                    r["discussion_entry_count"]=discussion_entry_count
+                    r["entry_id"]=et["id"]
+                    r["entry_author_id"]=et["user_id"]
+                    r["entry_author_name"]=et["user_name"]
+                    r["discussion_type"]=ct["discussion_type"]
+                    r["html_url"]=ct["html_url"]
+                    r["posted_at"]=ct["posted_at"]
+                    r["last_reply_at"]=ct["last_reply_at"]
+                    r["require_initial_post"]=ct["require_initial_post"]
+                    r["user_can_see_posts"]=ct["user_can_see_posts"]
+                    r["discussion_subentry_count"]=ct["discussion_subentry_count"]
+                    r["assignment"]=ct["assignment_id"]
+                    r["published"]=ct["published"]
+                    r["pinned"]=ct["pinned"]
+                    r["topic_creator"]=ct["user_name"]
+                    r["recent_replies"]=et["recent_replies"]
+                    
+                    unless discussion_topics_count
+                        discussion=[]
+                        discussion=canvas.get("/api/v1/courses/#{course["id"]}/discussion_topics?per_page=50")
+                        while discussion.more?
+                            discussion.next_page!
+                        end                        
+                        discussion_topics_count=discussion.count
+                    end
+                    
+                    r["discussion_topics_count"]=discussion_topics_count
+                    
+                    csv << r.values_at(*output_columns)
+                    end
+                  end
+               end
+            end
+          end
+        end
+      end
+    end
+  end
+    end
+            end
+        end
+    end
+  
+
