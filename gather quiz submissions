@@ -1,0 +1,49 @@
+require 'rubygems'
+require 'json'
+require 'canvas-api'
+require 'csv'
+
+canvas = Canvas::API.new(:host => "https://your.canvas.domain", :token => "insert your token")
+
+course=['canvas_course_id_1','canvas course id_2','canvas_course_id_3']
+
+#loop through the course array and gather the quiz id records in each course
+course.each do |id|
+records = canvas.get("/api/v1/courses/#{id}/quizzes?per_page=50")
+while records.more?
+  records.next_page!
+end
+
+#define the fields
+output_columns=%w(quiz_title attempt time_spent quiz_points_possible score kept_score accuracy_ratio started_at finished_at end_at has_seen_results id quiz_id submission_id user_id html_url)
+
+CSV.open("QuizzesSubmissions.csv", "wb") do |csv|
+    csv<<output_columns
+    records.each do|submission|
+    
+    # add this line code if you want to gather submission info for a specific quiz
+    if submission["title"].include?(" ")
+
+    quiz_submissions=[]
+    begin
+        quiz_submissions = canvas.get("/api/v1/courses/#{id}/quizzes/#{submission["id"]}/submissions?include[]=submission&per_page=50")
+        while quiz_submissions.more?
+            quiz_submissions.next_page!
+            end
+    rescue Exception
+    end
+    
+        if quiz_submissions
+        quiz_submissions['quiz_submissions'].each do|hash|
+         
+            hash["quiz_title"]=submission["title"]
+            hash["accuracy_ratio"]=hash["score"].to_f/hash["quiz_points_possible"].to_f
+ 
+                csv<<hash.values_at(*output_columns)
+                
+                end
+            end
+        end
+    end
+end
+end
