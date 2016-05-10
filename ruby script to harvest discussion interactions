@@ -3,10 +3,6 @@ require 'json'
 require 'canvas-api'
 require 'csv'
 
-course_ids=[]
-
-course_file=[]
-
 canvas = Canvas::API.new(:host => "https://your.canvas.domain", :token => "insert your token")
 
 courses = canvas.get("/api/v1/courses?per_page=50")
