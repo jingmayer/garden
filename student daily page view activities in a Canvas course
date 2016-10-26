@@ -1,0 +1,32 @@
+require 'rubygems'
+require 'json'
+require 'canvas-api'
+require 'csv'
+require 'date'
+
+canvas = Canvas::API.new(:host => "your Canvas instance domain", :token => "your token")
+
+# get enrollments for a given course
+enrollments = canvas.get("/api/v1/courses/replace here with a canvas_course_numeric_id/enrollments?per_page=50&role[]=StudentEnrollment")
+while enrollments.more?
+    enrollments.next_page!
+end
+# output the result in a csv file
+CSV.open("activity.csv", "w") do |csv|
+    csv << ["datetime","daily_page_views","cumulative_page_views","total_activity_time","user","pageview_id","date"]
+    # loop through each enrollment and get page_view activities for the user
+    enrollments.each do |enrol|
+     activities = canvas.get("/api/v1/courses/1176/analytics/users/#{enrol['user_id']}/activity?per_page=50")
+	   pageview=[]
+      # loop through each page view record for the user
+      activities["page_views"].each do |ct|
+	     pageview << ct[1]
+	     ct << pageview.inject(0){|sum,num|sum+num}
+	     ct << enrol['total_activity_time']
+	     ct << enrol['user_id']
+	     ct << [enrol['user_id'],ct[1]].join('')
+	     ct << DateTime.strptime(ct[0]).to_date
+       csv << ct
+	    end
+    end
+   end
