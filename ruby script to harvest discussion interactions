@@ -58,7 +58,7 @@ CSV.open("edgelist.csv", "w") do |csv|
                     r["entry_author_id"]=et["user_id"]
                     r["entry_author_name"]=et["user_name"]
                     r["discussion_type"]=ct["discussion_type"]
-                     r["reply_word_count"]=r["message"].length
+                     r["reply_word_count"]=r["message"].split.count
                     csv << r.values_at(*output_columns)
                     end
                   end
