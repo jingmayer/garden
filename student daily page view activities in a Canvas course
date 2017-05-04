@@ -8,15 +8,16 @@ canvas = Canvas::API.new(:host => "your Canvas instance domain", :token => "your
 
 course=['canvas_course_id_1','canvas course id_2','canvas_course_id_3']
 
-csv << ["datetime","daily_page_views","cumulative_page_views","total_activity_time","user","pageview_id","date"]
+output_columns=%w(datetime, daily_page_views, cumulative_page_views, total_activity_time, user, pageview_id,date)
 
-CSV.open("activity.csv", "w") do |csv|
 #loop through the course array and gather the enrollment records in each course
 course.each do |id|
 enrollments = canvas.get("/api/v1/courses/#{id}/enrollments?per_page=50&role[]=StudentEnrollment")
 while enrollments.more?
     enrollments.next_page!
 end
+
+CSV.open("activity.csv", "w") do |csv|
     # loop through each enrollment and get page_view activities for the user
     enrollments.each do |enrol|
      activities = canvas.get("/api/v1/courses/#{id}/analytics/users/#{enrol['user_id']}/activity?per_page=50")
