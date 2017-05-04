@@ -6,28 +6,25 @@ require 'date'
 
 canvas = Canvas::API.new(:host => "your Canvas instance domain", :token => "your token")
 
-course=[canvas_number]
-
 output_columns = %w(name user_id enrolled_at last_activity_at grade total_activity_time)
 printed_headers=true
 
-enrollments = canvas.get("/api/v1/courses/#{course}/enrollments?per_page=50&role[]=StudentEnrollment")
+enrollments = canvas.get("/api/v1/courses/#ReplaceWithCourseNumber/enrollments?per_page=50&role[]=StudentEnrollment")
 while enrollments.more?
     enrollments.next_page!
 end
 
-CSV.open("result/course/activity.csv", "w") do |csv|
-  CSV.open("result/course/1176pageviews.csv", "w") do |csv2|
+CSV.open("courseactivity.csv", "w") do |csv|
+  CSV.open("coursepageviews.csv", "w") do |csv2|
     csv2 << ["datetime","daily_page_views","user","cumulative_visit_times","cumulative_page_views",'visit_group',"pageview_id","date"]
   csv<<output_columns
   enrollments.each do |enrol|
     if enrol['type'].downcase.include?('studentenrollment') && enrol["total_activity_time"] >0
       enrol["grade"]=enrol["grades"]["final_score"]
-      #enrol["grade_url"]=enrol["grades"]["html_url"]
       enrol["name"]=enrol["user"]["name"]
       enrol['enrolled_at']=enrol['created_at']
         csv<< enrol.values_at(*output_columns)
-    activities = canvas.get("/api/v1/courses/#{canvas_number}/analytics/users/#{enrol['user_id']}/activity?per_page=50")
+    activities = canvas.get("/api/v1/courses/#ReplaceWithCourseNumber/analytics/users/#{enrol['user_id']}/activity?per_page=50")
 	pageview=[]
 	totalvisit=[]
 	count=Hash.new(0)
@@ -41,13 +38,7 @@ CSV.open("result/course/activity.csv", "w") do |csv|
 	   ct<< 'new visit'
 	   else ct<< 'return visit'
 	   end
-	  #ct << pageview.each_with_object(Hash.new(0)) { |name,count| count[name] += 1 }
-	  #ct << pageview.each{|name| count[name] +=1 }
-	  #ct << enrol['total_activity_time']
-	  #ct << [enrol['user_id'], pageview.count { |element| element>0 }].join('')
 	  ct << [enrol['user_id'],ct[0][11,2]].join('').to_s
-	  #ct << [enrol['name'].split(/ /).first, pageview.count { |element| element>0 }].join('')
-	  #ct << [enrol['user_id'],ct[0][5,2],ct[0][8,2],ct[0][11,2],ct[1]].join('.').to_s
 	  ct << DateTime.strptime(ct[0]).to_date
 	 
       csv2 << ct
