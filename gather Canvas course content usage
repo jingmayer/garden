@@ -4,8 +4,8 @@ require 'canvas-api'
 require 'csv'
 
 canvas = Canvas::API.new(:host => "https://your.canvas.domain", :token => "insert your token")
-
-courses = canvas.get("/api/v1/courses?include[]=total_students&per_page=50")
+#if you are Canvas admin, you can use the accounts API to pull the courses reside under the sub-account
+courses = canvas.get("/api/v1/accounts/:account_id/courses?include[]=total_students&per_page=50")
 while courses.more?
 courses.next_page!
 end
